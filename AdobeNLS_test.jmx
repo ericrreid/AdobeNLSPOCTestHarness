@@ -1,0 +1,642 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.4.1">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Adobe POC Test Plan" enabled="true">
+      <stringProp name="TestPlan.comments"></stringProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+        <collectionProp name="Arguments.arguments"/>
+      </elementProp>
+      <stringProp name="TestPlan.user_define_classpath"></stringProp>
+    </TestPlan>
+    <hashTree>
+      <com.tag.jmeter.ext.config.PropertyReader guiclass="TestBeanGUI" testclass="com.tag.jmeter.ext.config.PropertyReader" testname="Property File Reader" enabled="false">
+        <stringProp name="propFilePath">/home/ubuntu/AdobeNLS.jmeter.properties</stringProp>
+      </com.tag.jmeter.ext.config.PropertyReader>
+      <hashTree/>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Adobe POC Thread Group" enabled="true">
+        <stringProp name="ThreadGroup.on_sample_error">stopthread</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <intProp name="LoopController.loops">-1</intProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">${__P(THREADS)}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${__P(RAMPUP)}</stringProp>
+        <boolProp name="ThreadGroup.scheduler">false</boolProp>
+        <stringProp name="ThreadGroup.duration">60</stringProp>
+        <stringProp name="ThreadGroup.delay"></stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+      </ThreadGroup>
+      <hashTree>
+        <DebugSampler guiclass="TestBeanGUI" testclass="DebugSampler" testname="Debug Sampler" enabled="true">
+          <boolProp name="displayJMeterProperties">true</boolProp>
+          <boolProp name="displayJMeterVariables">true</boolProp>
+          <boolProp name="displaySystemProperties">true</boolProp>
+          <stringProp name="TestPlan.comments">Should only be on for debugging - go to &apos;Response Data&apos; to see all variables/properties</stringProp>
+        </DebugSampler>
+        <hashTree/>
+        <OnceOnlyController guiclass="OnceOnlyControllerGui" testclass="OnceOnlyController" testname="CONNECT" enabled="true">
+          <stringProp name="TestPlan.comments">Allows us to connect once, then run operations N times</stringProp>
+        </OnceOnlyController>
+        <hashTree>
+          <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Connect" enabled="true">
+            <stringProp name="scriptLanguage">groovy</stringProp>
+            <stringProp name="parameters"></stringProp>
+            <stringProp name="filename"></stringProp>
+            <stringProp name="cacheKey">true</stringProp>
+            <stringProp name="script">import com.mongodb.*;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Updates;
+
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.model.Sorts;
+import com.mongodb.client.result.*;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+
+import java.util.List;
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Random;
+
+import static com.mongodb.client.model.Filters.*;
+import static com.mongodb.client.model.Updates.*;
+
+Random rand = new Random();
+
+MongoClient mongoClient = MongoClients.create(&quot;${__P(URI)}&quot;);
+//OUT.println(&quot;Connect: URI: &quot; + &quot;${__P(URI)}&quot;);
+
+MongoDatabase database = mongoClient.getDatabase(&quot;${__P(DATABASE)}&quot;);
+MongoCollection&lt;Document&gt;; collection = database.getCollection(&quot;${__P(COLLECTION)}&quot;);
+//OUT.println(&quot;Connect: Collection: &quot; + collection);
+
+Document firstId = collection.find().sort(Sorts.ascending(&quot;_id&quot;)).first();
+Document lastId = collection.find().sort(Sorts.descending(&quot;_id&quot;)).first();
+//OUT.println(&quot;Connect: StartID: &quot; + firstId._id + &quot;  EndId: &quot; + lastId._id);
+
+vars.putObject(&quot;COLLECTION&quot;, collection);
+vars.putObject(&quot;STARTID&quot;, (Long)firstId._id);
+vars.putObject(&quot;NUMDOCS&quot;, lastId._id-firstId._id+1);
+vars.putObject(&quot;RANDOM&quot;, rand);
+
+</stringProp>
+            <stringProp name="TestPlan.comments">Connect to Atlas instance</stringProp>
+          </JSR223Sampler>
+          <hashTree/>
+        </hashTree>
+        <ThroughputController guiclass="ThroughputControllerGui" testclass="ThroughputController" testname="SIMPLEFIND" enabled="true">
+          <intProp name="ThroughputController.style">1</intProp>
+          <boolProp name="ThroughputController.perThread">false</boolProp>
+          <intProp name="ThroughputController.maxThroughput">1</intProp>
+          <stringProp name="ThroughputController.percentThroughput">${__P(PERCENT_SIMPLEFIND)}</stringProp>
+        </ThroughputController>
+        <hashTree>
+          <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Simple Find" enabled="true">
+            <stringProp name="scriptLanguage">groovy</stringProp>
+            <stringProp name="parameters"></stringProp>
+            <stringProp name="filename"></stringProp>
+            <stringProp name="cacheKey">true</stringProp>
+            <stringProp name="script">import com.mongodb.*;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Filters.*;
+import com.mongodb.client.model.Updates;
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.result.*;
+import com.mongodb.client.MongoCursor;
+
+import org.bson.Document;
+import org.bson.types.ObjectId;
+
+import java.util.Random;
+
+Random rand = vars.getObject(&quot;RANDOM&quot;);
+
+MongoCollection&lt;Document&gt; collection = vars.getObject(&quot;COLLECTION&quot;);
+
+Long minId = vars.getObject(&quot;STARTID&quot;);
+System.out.println(&quot;STARTID: &quot; + minId);
+int numdocs = vars.getObject(&quot;NUMDOCS&quot;);
+System.out.println(&quot;NUMDOCS: &quot; + numdocs);
+Long matchId = minId+((Long)(rand.nextInt(numdocs))-1);
+System.out.println(&quot;MATCHID: &quot; + matchId);
+
+MongoCursor&lt;Document&gt; cursor = collection.find(Filters.eq(&quot;_id&quot;, matchId)).iterator();</stringProp>
+            <stringProp name="TestPlan.comments">Simple find on _id (100% match)</stringProp>
+          </JSR223Sampler>
+          <hashTree/>
+        </hashTree>
+        <ThroughputController guiclass="ThroughputControllerGui" testclass="ThroughputController" testname="UPSERT (all updates)" enabled="true">
+          <intProp name="ThroughputController.style">1</intProp>
+          <boolProp name="ThroughputController.perThread">false</boolProp>
+          <intProp name="ThroughputController.maxThroughput">1</intProp>
+          <stringProp name="ThroughputController.percentThroughput">${__P(PERCENT_UPSERT_ALL_UPDATES)}</stringProp>
+        </ThroughputController>
+        <hashTree>
+          <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Upsert (all updates)" enabled="true">
+            <stringProp name="scriptLanguage">groovy</stringProp>
+            <stringProp name="parameters"></stringProp>
+            <stringProp name="filename"></stringProp>
+            <stringProp name="cacheKey">true</stringProp>
+            <stringProp name="script">import com.mongodb.*;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Updates;
+
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.result.*;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+
+import java.util.List;
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Random;
+
+import static com.mongodb.client.model.Filters.*;
+import static com.mongodb.client.model.Updates.*;
+
+MongoCollection&lt;Document&gt; collection = vars.getObject(&quot;COLLECTION&quot;);
+Random rand = vars.getObject(&quot;RANDOM&quot;);
+
+Long first = vars.getObject(&quot;STARTID&quot;);
+int numdocs = vars.getObject(&quot;NUMDOCS&quot;);
+Long queryId = first+((Long)(rand.nextInt(numdocs))-1);
+int mValue = 12000 + rand.nextInt(200);
+
+// {&quot;q&quot;: {&quot;_id&quot;: BinData(0,&quot;AkoiYeaMqMs=&quot;)}, &quot;u&quot;: {&quot;$set&quot;: {&quot;n&quot;: &quot;rsQQlet+jqHlLH0tpPMGqw==&quot;, &quot;nu8&quot;: false}, &quot;$addToSet&quot; : {&quot;m&quot;: 12104}, &quot;$unset&quot;: {&quot;dr&quot;: 1}}, &quot;multi&quot;: false, &quot;upsert&quot;: true}
+
+// OUT.println(&quot;Upsert: Collection: &quot; + collection + &quot;; queryId: &quot; + queryId);
+
+collection.updateOne(
+         eq(&quot;_id&quot;, queryId),
+         combine(set(&quot;n&quot;, &quot;rsQQlet+jqHlLH0tpPMGqw==&quot;), set(&quot;nu8&quot;, false), Updates.addToSet(&quot;m&quot;, mValue), unset(&quot;dr&quot;)),
+         new UpdateOptions().upsert(true));
+
+
+</stringProp>
+            <stringProp name="TestPlan.comments">Single Upsert per original specification, all matches</stringProp>
+          </JSR223Sampler>
+          <hashTree/>
+        </hashTree>
+        <ThroughputController guiclass="ThroughputControllerGui" testclass="ThroughputController" testname="UPSERT (all inserts)" enabled="true">
+          <intProp name="ThroughputController.style">1</intProp>
+          <boolProp name="ThroughputController.perThread">false</boolProp>
+          <intProp name="ThroughputController.maxThroughput">1</intProp>
+          <stringProp name="ThroughputController.percentThroughput">${__P(PERCENT_UPSERT_ALL_INSERTS)}</stringProp>
+        </ThroughputController>
+        <hashTree>
+          <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Upsert (all inserts)" enabled="true">
+            <stringProp name="scriptLanguage">groovy</stringProp>
+            <stringProp name="parameters"></stringProp>
+            <stringProp name="filename"></stringProp>
+            <stringProp name="cacheKey">true</stringProp>
+            <stringProp name="script">import com.mongodb.*;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Updates;
+
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.result.*;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+
+import java.util.List;
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Random;
+import java.io.*;
+
+import static com.mongodb.client.model.Filters.*;
+import static com.mongodb.client.model.Updates.*;
+
+MongoCollection&lt;Document&gt; collection = vars.getObject(&quot;COLLECTION&quot;);
+Random rand = vars.getObject(&quot;RANDOM&quot;);
+Long first = vars.getObject(&quot;STARTID&quot;);
+int numdocs = vars.getObject(&quot;NUMDOCS&quot;);
+Long insertStart = ${__P(UPSERT_START_INSERT_ID)};
+
+//System.out.println(&quot;insertStart: &quot; + insertStart);
+
+Long queryId = insertStart + rand.nextLong();
+//System.out.println(&quot;QUERYID: &quot; + queryId);
+int mValue = 12000 + rand.nextInt(200);
+
+// {&quot;q&quot;: {&quot;_id&quot;: BinData(0,&quot;AkoiYeaMqMs=&quot;)}, &quot;u&quot;: {&quot;$set&quot;: {&quot;n&quot;: &quot;rsQQlet+jqHlLH0tpPMGqw==&quot;, &quot;nu8&quot;: false}, &quot;$addToSet&quot; : {&quot;m&quot;: 12104}, &quot;$unset&quot;: {&quot;dr&quot;: 1}}, &quot;multi&quot;: false, &quot;upsert&quot;: true}
+
+// OUT.println(&quot;Upsert: Collection: &quot; + collection + &quot;; queryId: &quot; + queryId);
+
+collection.updateOne(
+         eq(&quot;_id&quot;, queryId),
+         combine(set(&quot;n&quot;, &quot;rsQQlet+jqHlLH0tpPMGqw==&quot;), set(&quot;nu8&quot;, false), Updates.addToSet(&quot;m&quot;, mValue), unset(&quot;dr&quot;)),
+         new UpdateOptions().upsert(true));
+
+
+</stringProp>
+            <stringProp name="TestPlan.comments">Single Upsert per original specification, no matches</stringProp>
+          </JSR223Sampler>
+          <hashTree/>
+        </hashTree>
+        <ThroughputController guiclass="ThroughputControllerGui" testclass="ThroughputController" testname="REGEX (FIND)" enabled="true">
+          <intProp name="ThroughputController.style">1</intProp>
+          <boolProp name="ThroughputController.perThread">false</boolProp>
+          <intProp name="ThroughputController.maxThroughput">1</intProp>
+          <stringProp name="ThroughputController.percentThroughput">${__P(PERCENT_REGEX_FIND)}</stringProp>
+        </ThroughputController>
+        <hashTree>
+          <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Regex Find" enabled="true">
+            <stringProp name="scriptLanguage">groovy</stringProp>
+            <stringProp name="parameters"></stringProp>
+            <stringProp name="filename"></stringProp>
+            <stringProp name="cacheKey">true</stringProp>
+            <stringProp name="script">import com.mongodb.*;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Filters.*;
+import com.mongodb.client.model.Updates;
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.result.*;
+import com.mongodb.client.MongoCursor;
+
+import org.bson.Document;
+import org.bson.types.ObjectId;
+
+import java.util.Random;
+
+Random rand = vars.getObject(&quot;RANDOM&quot;);
+
+MongoCollection&lt;Document&gt; collection = vars.getObject(&quot;COLLECTION&quot;);
+
+Long minId = vars.getObject(&quot;STARTID&quot;);
+int numdocs = vars.getObject(&quot;NUMDOCS&quot;);
+Long maxId = minId+(Long)rand.nextInt(numdocs-1);
+
+// { find: \&quot;lookups_u9877\&quot;, filter: { $and: [ { _id: { $gte: BinData(0, 72000000000000000000000000000000), $lte: BinData(0, 7200000000000000FFFFFFFFFFFFFFFF) } }, { dr: { $exists: false } }, { m: { $in: [ 12000, 12001, 12002, 12003, 12004, 12005, 12006, 12007, 12008, 12009, 12010, 12011, 12100, 12101, 12102, 12103, 12104 ] } }, { $or: [ { $or: [ { n: /41408/m }, { n: /41629/m }, { n: /41630/m }, { n: /41787/m }, { n: /41809/m }, { n: /60111/m }, { n: /60253/m }, { n: /60432/m }, { n: /60434/m }, { n: /61832/m }, { n: /61833/m }, { n: /61834/m }, { n: /62101/m }, { n: /62116/m }, { n: /62467/m }, { n: /62468/m }, { n: /62469/m }, { n: /62470/m }, { n: /62471/m }, { n: /62472/m }, { n: /62476/m }, { n: /62477/m }, { n: /62583/m }, { n: /62585/m }, { n: /62586/m }, { n: /62660/m }, { n: /62661/m }, { n: /62662/m }, { n: /62691/m }, { n: /62698/m }, { n: /62699/m }, { n: /62700/m }, { n: /63374/m }, { n: /63375/m }, { n: /63376/m }, { n: /63490/m }, { n: /63491/m }, { n: /64493/m }, { n: /...
+
+// TODO: What to do about alllllll those $ors?...
+// NOTE: Whatever the final shape, ensure proper indexing
+
+MongoCursor&lt;Document&gt; cursor = collection.find(
+		Filters.and(
+				Filters.gte(&quot;_id&quot;, minId), 
+				Filters.lte(&quot;_id&quot;, maxId),
+				Filters.not(Filters.exists(&quot;dr&quot;)),
+				Filters.in(&quot;m&quot;, 12000, 12001, 12002, 12003, 12004, 12005, 12006, 12007, 12008, 12009, 12010, 12011, 12100, 12101, 12102, 12103, 12104),
+				Filters.or(
+       				Filters.regex(&quot;n&quot;, &quot;/41408/&quot;, &quot;m&quot;),
+       				Filters.regex(&quot;n&quot;, &quot;/41409/&quot;, &quot;m&quot;),
+       				Filters.regex(&quot;n&quot;, &quot;/41410/&quot;, &quot;m&quot;),
+       				Filters.regex(&quot;n&quot;, &quot;/41420/&quot;, &quot;m&quot;),
+       				Filters.regex(&quot;n&quot;, &quot;/41430/&quot;, &quot;m&quot;),
+       				Filters.regex(&quot;n&quot;, &quot;/41440/&quot;, &quot;m&quot;),
+       				Filters.regex(&quot;n&quot;, &quot;/41450/&quot;, &quot;m&quot;),
+       				Filters.regex(&quot;n&quot;, &quot;/41460/&quot;, &quot;m&quot;),
+       				Filters.regex(&quot;n&quot;, &quot;/41470/&quot;, &quot;m&quot;),
+       				Filters.regex(&quot;n&quot;, &quot;/orange/&quot;, &quot;mi&quot;),
+       				Filters.regex(&quot;n&quot;, &quot;/blue/&quot;, &quot;mi&quot;),
+       				Filters.regex(&quot;n&quot;, &quot;/green/&quot;, &quot;mi&quot;),
+       				Filters.regex(&quot;n&quot;, &quot;/red/&quot;, &quot;mi&quot;)      				       				
+				)
+)).iterator();</stringProp>
+            <stringProp name="TestPlan.comments">Single regex-based find</stringProp>
+          </JSR223Sampler>
+          <hashTree/>
+        </hashTree>
+        <ThroughputController guiclass="ThroughputControllerGui" testclass="ThroughputController" testname="REGEX (FIND2)" enabled="true">
+          <intProp name="ThroughputController.style">1</intProp>
+          <boolProp name="ThroughputController.perThread">false</boolProp>
+          <intProp name="ThroughputController.maxThroughput">1</intProp>
+          <stringProp name="ThroughputController.percentThroughput">${__P(PERCENT_REGEX_FIND2)}</stringProp>
+        </ThroughputController>
+        <hashTree>
+          <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Regex Find2" enabled="true">
+            <stringProp name="scriptLanguage">groovy</stringProp>
+            <stringProp name="parameters"></stringProp>
+            <stringProp name="filename"></stringProp>
+            <stringProp name="cacheKey">true</stringProp>
+            <stringProp name="script">import com.mongodb.*;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Filters.*;
+import com.mongodb.client.model.Updates;
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.result.*;
+import com.mongodb.client.MongoCursor;
+
+import org.bson.Document;
+import org.bson.types.ObjectId;
+
+import java.util.Random;
+
+Random rand = vars.getObject(&quot;RANDOM&quot;);
+
+MongoCollection&lt;Document&gt; collection = vars.getObject(&quot;COLLECTION&quot;);
+
+Long minId = vars.getObject(&quot;STARTID&quot;);
+int numdocs = vars.getObject(&quot;NUMDOCS&quot;);
+Long maxId = minId+(Long)rand.nextInt(numdocs-1);
+
+// { find: \&quot;lookups_u9877\&quot;, filter: { $and: [ { _id: { $gte: BinData(0, 72000000000000000000000000000000), $lte: BinData(0, 7200000000000000FFFFFFFFFFFFFFFF) } }, { dr: { $exists: false } }, { m: { $in: [ 12000, 12001, 12002, 12003, 12004, 12005, 12006, 12007, 12008, 12009, 12010, 12011, 12100, 12101, 12102, 12103, 12104 ] } }, { $or: [ { $or: [ { n: /41408/m }, { n: /41629/m }, { n: /41630/m }, { n: /41787/m }, { n: /41809/m }, { n: /60111/m }, { n: /60253/m }, { n: /60432/m }, { n: /60434/m }, { n: /61832/m }, { n: /61833/m }, { n: /61834/m }, { n: /62101/m }, { n: /62116/m }, { n: /62467/m }, { n: /62468/m }, { n: /62469/m }, { n: /62470/m }, { n: /62471/m }, { n: /62472/m }, { n: /62476/m }, { n: /62477/m }, { n: /62583/m }, { n: /62585/m }, { n: /62586/m }, { n: /62660/m }, { n: /62661/m }, { n: /62662/m }, { n: /62691/m }, { n: /62698/m }, { n: /62699/m }, { n: /62700/m }, { n: /63374/m }, { n: /63375/m }, { n: /63376/m }, { n: /63490/m }, { n: /63491/m }, { n: /64493/m }, { n: /...
+
+// TODO: What to do about alllllll those $ors?...
+// NOTE: Whatever the final shape, ensure proper indexing
+
+MongoCursor&lt;Document&gt; cursor = collection.find(
+		Filters.and(
+				Filters.gte(&quot;_id&quot;, minId), 
+				Filters.lte(&quot;_id&quot;, maxId),
+				Filters.not(Filters.exists(&quot;dr&quot;)),
+				Filters.in(&quot;m&quot;, 12000, 12001, 12002, 12003, 12004, 12005, 12006, 12007, 12008, 12009, 12010, 12011, 12100, 12101, 12102, 12103, 12104),
+				Filters.or(
+       				Filters.regex(&quot;n&quot;,&quot;41408|41409|41410|41420|41430|41440|41450|41460|41470|orange|blue|green|red&quot;, &quot;mi&quot;)
+				)
+)).iterator();</stringProp>
+            <stringProp name="TestPlan.comments">Single regex-based find (one regex statement)</stringProp>
+          </JSR223Sampler>
+          <hashTree/>
+        </hashTree>
+        <ThroughputController guiclass="ThroughputControllerGui" testclass="ThroughputController" testname="REGEX (MATCH)" enabled="true">
+          <intProp name="ThroughputController.style">1</intProp>
+          <boolProp name="ThroughputController.perThread">false</boolProp>
+          <intProp name="ThroughputController.maxThroughput">1</intProp>
+          <stringProp name="ThroughputController.percentThroughput">${__P(PERCENT_REGEX_MATCH)}</stringProp>
+        </ThroughputController>
+        <hashTree>
+          <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Regex Match" enabled="true">
+            <stringProp name="scriptLanguage">groovy</stringProp>
+            <stringProp name="parameters"></stringProp>
+            <stringProp name="filename"></stringProp>
+            <stringProp name="cacheKey">true</stringProp>
+            <stringProp name="script">import com.mongodb.*;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Filters.*;
+import com.mongodb.client.model.Updates;
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.result.*;
+import com.mongodb.client.MongoCursor;
+
+import org.bson.Document;
+import org.bson.types.ObjectId;
+
+import java.util.Random;
+
+Random rand = vars.getObject(&quot;RANDOM&quot;);
+
+MongoCollection&lt;Document&gt; collection = vars.getObject(&quot;COLLECTION&quot;);
+
+int minId = vars.getObject(&quot;STARTID&quot;);
+int numdocs = vars.getObject(&quot;NUMDOCS&quot;);
+int maxId = minId+rand.nextInt(numdocs-1);
+
+// { find: \&quot;lookups_u9877\&quot;, filter: { $and: [ { _id: { $gte: BinData(0, 72000000000000000000000000000000), $lte: BinData(0, 7200000000000000FFFFFFFFFFFFFFFF) } }, { dr: { $exists: false } }, { m: { $in: [ 12000, 12001, 12002, 12003, 12004, 12005, 12006, 12007, 12008, 12009, 12010, 12011, 12100, 12101, 12102, 12103, 12104 ] } }, { $or: [ { $or: [ { n: /41408/m }, { n: /41629/m }, { n: /41630/m }, { n: /41787/m }, { n: /41809/m }, { n: /60111/m }, { n: /60253/m }, { n: /60432/m }, { n: /60434/m }, { n: /61832/m }, { n: /61833/m }, { n: /61834/m }, { n: /62101/m }, { n: /62116/m }, { n: /62467/m }, { n: /62468/m }, { n: /62469/m }, { n: /62470/m }, { n: /62471/m }, { n: /62472/m }, { n: /62476/m }, { n: /62477/m }, { n: /62583/m }, { n: /62585/m }, { n: /62586/m }, { n: /62660/m }, { n: /62661/m }, { n: /62662/m }, { n: /62691/m }, { n: /62698/m }, { n: /62699/m }, { n: /62700/m }, { n: /63374/m }, { n: /63375/m }, { n: /63376/m }, { n: /63490/m }, { n: /63491/m }, { n: /64493/m }, { n: /...
+
+// TODO: What to do about alllllll those $ors?...
+// NOTE: Whatever the final shape, ensure proper indexing
+
+MongoCursor&lt;Document&gt; cursor = collection.aggregate(
+		Arrays.asList(
+			match(
+				Filters.and(
+				Filters.gte(&quot;_id&quot;, minId), 
+				Filters.lte(&quot;_id&quot;, maxId),
+				Filters.not(Filters.exists(&quot;dr&quot;)),
+				Filters.in(&quot;m&quot;, 12000, 12001, 12002, 12003, 12004, 12005, 12006, 12007, 12008, 12009, 12010, 12011, 12100, 12101, 12102, 12103, 12104),
+				Filters.or(
+       				Filters.regex(&quot;n&quot;, &quot;/41408/&quot;, &quot;m&quot;),
+       				Filters.regex(&quot;n&quot;, &quot;/41409/&quot;, &quot;m&quot;),
+       				Filters.regex(&quot;n&quot;, &quot;/41410/&quot;, &quot;m&quot;),
+       				Filters.regex(&quot;n&quot;, &quot;/41420/&quot;, &quot;m&quot;),
+       				Filters.regex(&quot;n&quot;, &quot;/41430/&quot;, &quot;m&quot;),
+       				Filters.regex(&quot;n&quot;, &quot;/41440/&quot;, &quot;m&quot;),
+       				Filters.regex(&quot;n&quot;, &quot;/41450/&quot;, &quot;m&quot;),
+       				Filters.regex(&quot;n&quot;, &quot;/41460/&quot;, &quot;m&quot;),
+       				Filters.regex(&quot;n&quot;, &quot;/41470/&quot;, &quot;m&quot;),
+       				Filters.regex(&quot;n&quot;, &quot;/orange/&quot;, &quot;mi&quot;),
+       				Filters.regex(&quot;n&quot;, &quot;/blue/&quot;, &quot;mi&quot;),
+       				Filters.regex(&quot;n&quot;, &quot;/green/&quot;, &quot;mi&quot;),
+       				Filters.regex(&quot;n&quot;, &quot;/red/&quot;, &quot;mi&quot;)  
+))).iterator();</stringProp>
+            <stringProp name="TestPlan.comments">Single regex-based find - INCOMPLETE - NEEDS INDEX</stringProp>
+          </JSR223Sampler>
+          <hashTree/>
+        </hashTree>
+        <ThroughputController guiclass="ThroughputControllerGui" testclass="ThroughputController" testname="ATLAS SEARCH" enabled="true">
+          <intProp name="ThroughputController.style">1</intProp>
+          <boolProp name="ThroughputController.perThread">false</boolProp>
+          <intProp name="ThroughputController.maxThroughput">1</intProp>
+          <stringProp name="ThroughputController.percentThroughput">${__P(PERCENT_ATLASSEARCH)}</stringProp>
+        </ThroughputController>
+        <hashTree>
+          <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Atlas Search Logic - TBD" enabled="true">
+            <stringProp name="scriptLanguage">groovy</stringProp>
+            <stringProp name="parameters"></stringProp>
+            <stringProp name="filename"></stringProp>
+            <stringProp name="cacheKey">true</stringProp>
+            <stringProp name="script">import com.mongodb.*;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Filters.*;
+import com.mongodb.client.model.Updates;
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.result.*;
+import com.mongodb.client.MongoCursor;
+
+import org.bson.Document;
+import org.bson.types.ObjectId;
+
+import java.util.Random;
+
+Random rand = vars.getObject(&quot;RANDOM&quot;);
+
+MongoCollection&lt;Document&gt; collection = vars.getObject(&quot;COLLECTION&quot;);
+
+int minId = vars.getObject(&quot;STARTID&quot;);
+int numdocs = vars.getObject(&quot;NUMDOCS&quot;);
+int maxId = minId+rand.nextInt(numdocs-1);
+
+// MongoCursor&lt;Document&gt; cursor = collection.find().iterator();</stringProp>
+            <stringProp name="TestPlan.comments">Single regex-based find - INCOMPLETE</stringProp>
+          </JSR223Sampler>
+          <hashTree/>
+        </hashTree>
+        <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree" enabled="false">
+          <boolProp name="ResultCollector.error_logging">false</boolProp>
+          <objProp>
+            <name>saveConfig</name>
+            <value class="SampleSaveConfiguration">
+              <time>true</time>
+              <latency>true</latency>
+              <timestamp>true</timestamp>
+              <success>true</success>
+              <label>true</label>
+              <code>true</code>
+              <message>true</message>
+              <threadName>true</threadName>
+              <dataType>true</dataType>
+              <encoding>false</encoding>
+              <assertions>true</assertions>
+              <subresults>true</subresults>
+              <responseData>false</responseData>
+              <samplerData>false</samplerData>
+              <xml>false</xml>
+              <fieldNames>true</fieldNames>
+              <responseHeaders>false</responseHeaders>
+              <requestHeaders>false</requestHeaders>
+              <responseDataOnError>false</responseDataOnError>
+              <saveAssertionResultsFailureMessage>true</saveAssertionResultsFailureMessage>
+              <assertionsResultsToSave>0</assertionsResultsToSave>
+              <bytes>true</bytes>
+              <sentBytes>true</sentBytes>
+              <url>true</url>
+              <threadCounts>true</threadCounts>
+              <idleTime>true</idleTime>
+              <connectTime>true</connectTime>
+            </value>
+          </objProp>
+          <stringProp name="filename"></stringProp>
+        </ResultCollector>
+        <hashTree/>
+        <ResultCollector guiclass="RespTimeGraphVisualizer" testclass="ResultCollector" testname="Response Time Graph" enabled="false">
+          <boolProp name="ResultCollector.error_logging">false</boolProp>
+          <objProp>
+            <name>saveConfig</name>
+            <value class="SampleSaveConfiguration">
+              <time>true</time>
+              <latency>true</latency>
+              <timestamp>true</timestamp>
+              <success>true</success>
+              <label>true</label>
+              <code>true</code>
+              <message>true</message>
+              <threadName>true</threadName>
+              <dataType>true</dataType>
+              <encoding>false</encoding>
+              <assertions>true</assertions>
+              <subresults>true</subresults>
+              <responseData>false</responseData>
+              <samplerData>false</samplerData>
+              <xml>false</xml>
+              <fieldNames>true</fieldNames>
+              <responseHeaders>false</responseHeaders>
+              <requestHeaders>false</requestHeaders>
+              <responseDataOnError>false</responseDataOnError>
+              <saveAssertionResultsFailureMessage>true</saveAssertionResultsFailureMessage>
+              <assertionsResultsToSave>0</assertionsResultsToSave>
+              <bytes>true</bytes>
+              <sentBytes>true</sentBytes>
+              <url>true</url>
+              <threadCounts>true</threadCounts>
+              <idleTime>true</idleTime>
+              <connectTime>true</connectTime>
+            </value>
+          </objProp>
+          <stringProp name="filename"></stringProp>
+        </ResultCollector>
+        <hashTree/>
+        <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report" enabled="true">
+          <boolProp name="ResultCollector.error_logging">false</boolProp>
+          <objProp>
+            <name>saveConfig</name>
+            <value class="SampleSaveConfiguration">
+              <time>true</time>
+              <latency>true</latency>
+              <timestamp>true</timestamp>
+              <success>true</success>
+              <label>true</label>
+              <code>true</code>
+              <message>true</message>
+              <threadName>true</threadName>
+              <dataType>true</dataType>
+              <encoding>false</encoding>
+              <assertions>true</assertions>
+              <subresults>true</subresults>
+              <responseData>false</responseData>
+              <samplerData>false</samplerData>
+              <xml>false</xml>
+              <fieldNames>true</fieldNames>
+              <responseHeaders>false</responseHeaders>
+              <requestHeaders>false</requestHeaders>
+              <responseDataOnError>false</responseDataOnError>
+              <saveAssertionResultsFailureMessage>true</saveAssertionResultsFailureMessage>
+              <assertionsResultsToSave>0</assertionsResultsToSave>
+              <bytes>true</bytes>
+              <sentBytes>true</sentBytes>
+              <url>true</url>
+              <threadCounts>true</threadCounts>
+              <idleTime>true</idleTime>
+              <connectTime>true</connectTime>
+            </value>
+          </objProp>
+          <stringProp name="filename"></stringProp>
+        </ResultCollector>
+        <hashTree/>
+      </hashTree>
+      <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree" enabled="false">
+        <boolProp name="ResultCollector.error_logging">false</boolProp>
+        <objProp>
+          <name>saveConfig</name>
+          <value class="SampleSaveConfiguration">
+            <time>true</time>
+            <latency>true</latency>
+            <timestamp>true</timestamp>
+            <success>true</success>
+            <label>true</label>
+            <code>true</code>
+            <message>true</message>
+            <threadName>true</threadName>
+            <dataType>true</dataType>
+            <encoding>false</encoding>
+            <assertions>true</assertions>
+            <subresults>true</subresults>
+            <responseData>false</responseData>
+            <samplerData>false</samplerData>
+            <xml>false</xml>
+            <fieldNames>true</fieldNames>
+            <responseHeaders>false</responseHeaders>
+            <requestHeaders>false</requestHeaders>
+            <responseDataOnError>false</responseDataOnError>
+            <saveAssertionResultsFailureMessage>true</saveAssertionResultsFailureMessage>
+            <assertionsResultsToSave>0</assertionsResultsToSave>
+            <bytes>true</bytes>
+            <sentBytes>true</sentBytes>
+            <url>true</url>
+            <threadCounts>true</threadCounts>
+            <idleTime>true</idleTime>
+            <connectTime>true</connectTime>
+          </value>
+        </objProp>
+        <stringProp name="filename"></stringProp>
+      </ResultCollector>
+      <hashTree/>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>
